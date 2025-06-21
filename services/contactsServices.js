@@ -1,91 +1,67 @@
-import fs from "fs/promises";
-import path from "path";
-import { v4 as uuidv4 } from "uuid";
-
-const contactsPath = path.join(process.cwd(), "db", "contacts.json");
+import Contact from "../models/contact.js";
 
 export async function getContactsList() {
     try {
-        const data = await fs.readFile(contactsPath, "utf-8");
-        return JSON.parse(data);
+        return await Contact.findAll();
     } catch (error) {
-        console.error("Error reading contacts:", error);
-        return [];
+        console.error("Error listing contacts:", error);
+        throw error;
     }
 }
 
 export async function getContactById(contactId) {
     try {
-        const contacts = await getContactsList();
-        const contact = contacts.find((c) => c.id === contactId);
-        return contact || null;
+        return await Contact.findByPk(contactId);
     } catch (error) {
-        console.error("Error getting contact by ID:", error);
-        return null;
-    }
-}
-
-export async function removeContact(contactId) {
-    try {
-        const contacts = await getContactsList();
-        let removedContact = null;
-
-        const updatedContacts = contacts.filter((contact) => {
-            if (contact.id === contactId) {
-                removedContact = contact;
-                return false;
-            }
-            return true;
-        });
-
-        await fs.writeFile(contactsPath, JSON.stringify(updatedContacts, null, 2));
-        return removedContact;
-    } catch (error) {
-        console.error("Error removing contact:", error);
-        return null;
+        console.error(`Error getting contact with ID ${contactId}:`, error);
+        throw error;
     }
 }
 
 export async function addContact(name, email, phone) {
     try {
-        const contacts = await getContactsList();
-        const newContact = {
-            id: uuidv4(),
-            name,
-            email,
-            phone,
-        };
-        contacts.push(newContact);
-        await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
-        return newContact;
+        return await Contact.create({ name, email, phone });
     } catch (error) {
         console.error("Error adding contact:", error);
-        return null;
+        throw error;
     }
 }
 
-export async function updateContact(contactId, name, email, phone) {
+export async function updateContact(contactId, updatedData) {
     try {
-        const contacts = await getContactsList();
-        const contactIndex = contacts.findIndex((c) => c.id === contactId);
-
-        if (contactIndex === -1) {
-            return null;
-        }
-
-        const updatedContact = {
-            ...contacts[contactIndex],
-        };
-
-        if (name) updatedContact.name = name;
-        if (email) updatedContact.email = email;
-        if (phone) updatedContact.phone = phone;
-
-        contacts[contactIndex] = updatedContact;
-        await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
-        return updatedContact;
+        const [rowsUpdated, [updatedContact]] = await Contact.update(updatedData, {
+            where: { id: contactId },
+            returning: true,
+        });
+        return rowsUpdated ? updatedContact : null;
     } catch (error) {
-        console.error("Error updating contact:", error);
-        return null;
+        console.error(`Error updating contact with ID ${contactId}:`, error);
+        throw error;
+    }
+}
+
+export async function removeContact(contactId) {
+    try {
+        const contact = await getContactById(contactId);
+        if (!contact) return null;
+        await contact.destroy();
+        return contact;
+    } catch (error) {
+        console.error(`Error removing contact with ID ${contactId}:`, error);
+        throw error;
+    }
+}
+
+export async function updateStatusContact(contactId, favoriteValue) {
+    try {
+        console.log(`${contactId, favoriteValue}`)
+        const [rowsUpdated, [updatedContact]] = await Contact.update({ favorite: favoriteValue }, {
+            where: { id: contactId },
+            returning: true,
+        });
+        return rowsUpdated ? updatedContact : null;
+    } catch (error) {
+        console.error(`Error updating favorite status for contact with ID ${contactId}:`, error);
+        throw error;
     }
 }
