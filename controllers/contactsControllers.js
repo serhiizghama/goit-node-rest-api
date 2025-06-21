@@ -40,7 +40,7 @@ export const deleteContact = async (req, res) => {
         if (!removedContact) {
             throw HttpError(404);
         }
-        res.status(200).json({ message: "Contact deleted successfully", contact: removedContact });
+        res.status(200).json({ ...removedContact });
     } catch (error) {
         console.error("Error deleting contact:", error);
         const { status = 500, message = "Internal Server Error" } = error;
