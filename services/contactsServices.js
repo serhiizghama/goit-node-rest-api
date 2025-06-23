@@ -29,11 +29,15 @@ export async function addContact(name, email, phone) {
 
 export async function updateContact(contactId, updatedData) {
     try {
-        const [rowsUpdated, [updatedContact]] = await Contact.update(updatedData, {
-            where: { id: contactId },
-            returning: true,
-        });
-        return rowsUpdated ? updatedContact : null;
+        const contact = await Contact.findByPk(contactId);
+
+        if (!contact) {
+            console.log(`Contact with ID ${contactId} not found`);
+            return null;
+        }
+
+        const updatedContact = await contact.update(updatedData);
+        return updatedContact;
     } catch (error) {
         console.error(`Error updating contact with ID ${contactId}:`, error);
         throw error;
