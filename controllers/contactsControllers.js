@@ -4,6 +4,7 @@ import {
     removeContact,
     addContact,
     updateContact as updateContactService,
+    updateStatusContact,
 } from "../services/contactsServices.js";
 
 import HttpError from "../helpers/HttpError.js";
@@ -40,7 +41,7 @@ export const deleteContact = async (req, res) => {
         if (!removedContact) {
             throw HttpError(404);
         }
-        res.status(200).json({ ...removedContact });
+        res.status(200).json(removedContact);
     } catch (error) {
         console.error("Error deleting contact:", error);
         const { status = 500, message = "Internal Server Error" } = error;
@@ -81,5 +82,22 @@ export const updateContact = async (req, res) => {
         console.error("Error updating contact:", error);
         const { status = 500, message = "Internal Server Error" } = error;
         res.status(status).json({ message });
+    }
+};
+
+export const updateFavoriteController = async (req, res, next) => {
+    try {
+        const { contactId } = req.params;
+        const { favorite } = req.body;
+        if (typeof favorite !== "boolean") {
+            return next(HttpError(400, "Missing field favorite"));
+        }
+        const updatedContact = await updateStatusContact(contactId, favorite);
+        if (!updatedContact) {
+            return next(HttpError(404, "Not found"));
+        }
+        res.status(200).json(updatedContact);
+    } catch (error) {
+        next(error);
     }
 };
